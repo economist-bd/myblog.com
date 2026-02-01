@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Monjurul's Space</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@300;400;600&display=swap');
+        
+        body { font-family: 'Hind Siliguri', sans-serif; background-color: #0f172a; color: #e2e8f0; }
+        
+        /* Hide Scrollbar but keep functionality */
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        
+        /* Glassmorphism Effect */
+        .glass {
+            background: rgba(30, 41, 59, 0.7);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        /* Loading Spinner */
+        .loader { border: 4px solid #f3f3f3; border-top: 4px solid #3498db; border-radius: 50%; width: 30px; height: 30px; animation: spin 1s linear infinite; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    </style>
+</head>
+<body class="pb-20">
+
+    <header class="fixed top-0 w-full z-50 glass p-4 flex justify-between items-center shadow-lg">
+        <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-full bg-gradient-to-r from-blue-500 to-purple-600 flex items-center justify-center text-white font-bold text-xl">M</div>
+            <h1 class="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-purple-400">My Digital Space</h1>
+        </div>
+        <button onclick="toggleConfig()" class="text-gray-400 hover:text-white"><i class="fa-solid fa-gear text-xl"></i></button>
+    </header>
+
+    <main class="mt-24 px-4 container mx-auto max-w-md">
+        
+        <div class="mb-6 flex justify-between items-center">
+            <h2 class="text-lg text-gray-400">Latest Updates</h2>
+            <button onclick="openEditor()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-full text-sm font-semibold shadow-lg transition transform active:scale-95">
+                <i class="fa-solid fa-plus mr-2"></i> পোস্ট করুন
+            </button>
+        </div>
+
+        <div id="content-area" class="space-y-8">
+            <div class="text-center py-10"><div class="loader mx-auto"></div><p class="mt-2 text-gray-500">Loading GitHub Data...</p></div>
+        </div>
+
+    </main>
+
+    <div id="config-modal" class="fixed inset-0 z-[60] hidden bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="glass w-full max-w-sm p-6 rounded-2xl relative">
+            <h3 class="text-xl font-bold mb-4 text-white">GitHub কনফিগারেশন</h3>
+            <p class="text-xs text-gray-400 mb-4">এই তথ্যগুলো আপনার ব্রাউজারে লোকাল স্টোরেজে সেভ থাকবে।</p>
+            
+            <label class="block text-sm text-gray-300 mb-1">GitHub Username</label>
+            <input type="text" id="cfg-owner" class="w-full bg-slate-800 border border-slate-700 rounded p-2 mb-3 text-white focus:outline-none focus:border-blue-500" placeholder="e.g. monjurul">
+            
+            <label class="block text-sm text-gray-300 mb-1">Repository Name</label>
+            <input type="text" id="cfg-repo" class="w-full bg-slate-800 border border-slate-700 rounded p-2 mb-3 text-white focus:outline-none focus:border-blue-500" placeholder="e.g. my-digital-space">
+            
+            <label class="block text-sm text-gray-300 mb-1">Personal Access Token (Classic)</label>
+            <input type="password" id="cfg-token" class="w-full bg-slate-800 border border-slate-700 rounded p-2 mb-6 text-white focus:outline-none focus:border-blue-500" placeholder="ghp_xxxxxxxxxxxx">
+            
+            <button onclick="saveConfig()" class="w-full bg-green-600 hover:bg-green-700 text-white py-2 rounded-lg font-bold">সেভ করুন</button>
+            <button onclick="toggleConfig()" class="absolute top-4 right-4 text-gray-400 hover:text-white"><i class="fa-solid fa-times"></i></button>
+        </div>
+    </div>
+
+    <div id="editor-modal" class="fixed inset-0 z-[60] hidden bg-black/80 backdrop-blur-sm flex items-end sm:items-center justify-center sm:p-4">
+        <div class="glass w-full sm:max-w-md p-6 rounded-t-2xl sm:rounded-2xl relative h-[85vh] sm:h-auto overflow-y-auto">
+            <h3 class="text-xl font-bold mb-4 text-white" id="modal-title">নতুন পোস্ট</h3>
+            
+            <input type="hidden" id="edit-id">
+            
+            <label class="block text-sm text-gray-300 mb-1">ধরন (Category)</label>
+            <select id="inp-type" class="w-full bg-slate-800 border border-slate-700 rounded p-2 mb-3 text-white">
+                <option value="text">শুধুমাত্র লেখা (Text)</option>
+                <option value="image">ছবি (Image Link)</option>
+                <option value="video">ভিডিও (Video Link)</option>
+                <option value="audio">অডিও (Audio Link)</option>
+            </select>
+
+            <label class="block text-sm text-gray-300 mb-1">শিরোনাম</label>
+            <input type="text" id="inp-title" class="w-full bg-slate-800 border border-slate-700 rounded p-2 mb-3 text-white">
+
+            <label class="block text-sm text-gray-300 mb-1">মিডিয়া লিঙ্ক (যদি থাকে)</label>
+            <input type="text" id="inp-url" class="w-full bg-slate-800 border border-slate-700 rounded p-2 mb-3 text-white" placeholder="https://...">
+
+            <label class="block text-sm text-gray-300 mb-1">বিস্তারিত</label>
+            <textarea id="inp-content" rows="4" class="w-full bg-slate-800 border border-slate-700 rounded p-2 mb-6 text-white"></textarea>
+            
+            <div class="flex gap-3">
+                <button onclick="savePost()" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-lg font-bold">পাবলিশ করুন</button>
+                <button onclick="closeEditor()" class="flex-1 bg-slate-700 hover:bg-slate-600 text-white py-3 rounded-lg font-bold">বাতিল</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="toast" class="fixed bottom-10 left-1/2 transform -translate-x-1/2 bg-slate-800 text-white px-6 py-3 rounded-full shadow-xl text-sm hidden z-[70] transition-opacity duration-300">
+        Notification Message
+    </div>
+
+    <script>
+        // --- Global Variables ---
+        let githubData = { posts: [] };
+        let currentSha = "";
+        
+        // --- Initialization ---
+        document.addEventListener('DOMContentLoaded', () => {
+            loadConfig();
+            fetchData();
+        });
+
+        // --- Config Management ---
+        function toggleConfig() {
+            document.getElementById('config-modal').classList.toggle('hidden');
+        }
+
+        function loadConfig() {
+            document.getElementById('cfg-owner').value = localStorage.getItem('gh_owner') || '';
+            document.getElementById('cfg-repo').value = localStorage.getItem('gh_repo') || '';
+            document.getElementById('cfg-token').value = localStorage.getItem('gh_token') || '';
+        }
+
+        function saveConfig() {
+            const owner = document.getElementById('cfg-owner').value;
+            const repo = document.getElementById('cfg-repo').value;
+            const token = document.getElementById('cfg-token').value;
+
+            if(!owner || !repo || !token) return showToast("সব তথ্য পূরণ করুন!");
+
+            localStorage.setItem('gh_owner', owner);
+            localStorage.setItem('gh_repo', repo);
+            localStorage.setItem('gh_token', token);
+            
+            toggleConfig();
+            showToast("সেটিংস সেভ হয়েছে! লোড হচ্ছে...");
+            fetchData();
+        }
+
+        // --- GitHub API Interactions ---
+        async function fetchData() {
+            const owner = localStorage.getItem('gh_owner');
+            const repo = localStorage.getItem('gh_repo');
+            const token = localStorage.getItem('gh_token');
+
+            if (!owner || !repo) {
+                document.getElementById('content-area').innerHTML = `<div class="text-center text-gray-400 p-5">দয়া করে সেটিংস (⚙️) থেকে GitHub কনফিগার করুন।</div>`;
+                return;
+            }
+
+            // If running locally without token, try fetching relative file first (Read Only Mode)
+            let url = `https://api.github.com/repos/${owner}/${repo}/contents/data.json`;
+            let headers = {};
+            if(token) headers['Authorization'] = `token ${token}`;
+
+            try {
+                const response = await fetch(url, { headers: headers, cache: "no-store" });
+                if (!response.ok) throw new Error('Data fetch failed');
+                
+                const data = await response.json();
+                currentSha = data.sha;
+                
+                // Decode Base64 content from GitHub
+                const decodedContent = decodeURIComponent(escape(window.atob(data.content)));
+                githubData = JSON.parse(decodedContent);
+                
+                renderUI();
+            } catch (error) {
+                console.error(error);
+                // Fallback for local testing if API fails
+                try {
+                    const localRes = await fetch('data.json');
+                    githubData = await localRes.json();
+                    renderUI();
+                    showToast("লোকাল মোড: রিড-অনলি");
+                } catch(e) {
+                    showToast("ডাটা লোড করা যায়নি।");
+                }
+            }
+        }
+
+        async function pushToGitHub() {
+            const owner = localStorage.getItem('gh_owner');
+            const repo = localStorage.getItem('gh_repo');
+            const token = localStorage.getItem('gh_token');
+
+            if (!token) return showToast("টোকেন নেই! এডিট করা যাবে না।");
+
+            const content = btoa(unescape(encodeURIComponent(JSON.stringify(githubData, null, 2))));
+            
+            const url = `https://api.github.com/repos/${owner}/${repo}/contents/data.json`;
+            
+            showToast("গিটহাবে আপলোড হচ্ছে...");
+
+            try {
+                const res = await fetch(url, {
+                    method: 'PUT',
+                    headers: {
+                        'Authorization': `token ${token}`,
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        message: "Updated via Web App",
+                        content: content,
+                        sha: currentSha
+                    })
+                });
+
+                if (res.ok) {
+                    const data = await res.json();
+                    currentSha = data.content.sha;
+                    showToast("সফলভাবে আপডেট হয়েছে!");
+                    closeEditor();
+                    renderUI();
+                } else {
+                    showToast("আপলোড ব্যর্থ হয়েছে। কনসোল দেখুন।");
+                }
+            } catch (error) {
+                console.error(error);
+                showToast("নেটওয়ার্ক এরর!");
+            }
+        }
+
+        // --- UI Rendering ---
+        function renderUI() {
+            const container = document.getElementById('content-area');
+            container.innerHTML = '';
+
+            // Group by Category
+            const categories = {};
+            // Reverse to show latest first
+            [...githubData.posts].reverse().forEach(post => {
+                const cat = post.category || "General";
+                if (!categories[cat]) categories[cat] = [];
+                categories[cat].push(post);
+            });
+
+            // Render Horizontal Scroll Sections
+            for (const [category, posts] of Object.entries(categories)) {
+                
+                const section = document.createElement('div');
+                section.className = 'mb-8';
+                
+                const title = document.createElement('h3');
+                title.className = 'text-xl font-bold mb-3 pl-2 text-blue-400 border-l-4 border-blue-500';
+                title.innerText = category;
+                section.appendChild(title);
+
+                const scrollContainer = document.createElement('div');
+                scrollContainer.className = 'flex overflow-x-auto gap-4 pb-4 no-scrollbar snap-x snap-mandatory';
+                
+                posts.forEach(post => {
+                    const card = document.createElement('div');
+                    card.className = 'glass rounded-xl p-0 min-w-[280px] w-[280px] flex-shrink-0 snap-center overflow-hidden flex flex-col relative group';
+                    
+                    // Edit Button (Visible on hover/touch)
+                    const editBtn = document.createElement('button');
+                    editBtn.className = 'absolute top-2 right-2 bg-black/50 hover:bg-blue-600 text-white p-2 rounded-full opacity-0 group-hover:opacity-100 transition duration-300 z-10';
+                    editBtn.innerHTML = '<i class="fa-solid fa-pen"></i>';
+                    editBtn.onclick = () => openEditor(post.id);
+                    card.appendChild(editBtn);
+
+                    // Media Rendering
+                    let mediaHtml = '';
+                    if(post.type === 'image' && post.url) {
+                        mediaHtml = `<div class="h-40 w-full bg-slate-800"><img src="${post.url}" class="w-full h-full object-cover"></div>`;
+                    } else if (post.type === 'video' && post.url) {
+                         mediaHtml = `<div class="h-40 w-full bg-slate-800 flex items-center justify-center"><i class="fa-solid fa-play text-4xl text-gray-500"></i></div>`; // Simple placeholder for performance
+                    } else if (post.type === 'audio') {
+                         mediaHtml = `<div class="h-20 w-full bg-slate-800 flex items-center justify-center text-green-400"><i class="fa-solid fa-music text-3xl mr-2"></i> Audio Clip</div>`;
+                    }
+
+                    card.innerHTML += mediaHtml;
+
+                    const contentDiv = document.createElement('div');
+                    contentDiv.className = 'p-4 flex-1 flex flex-col';
+                    contentDiv.innerHTML = `
+                        <h4 class="font-bold text-lg mb-1 leading-tight">${post.title}</h4>
+                        <p class="text-xs text-gray-400 mb-2">${new Date(post.timestamp).toLocaleDateString()}</p>
+                        <p class="text-sm text-gray-300 line-clamp-3 mb-2">${post.content}</p>
+                        ${post.url && post.type !== 'image' ? `<a href="${post.url}" target="_blank" class="mt-auto text-blue-400 text-xs hover:underline">লিঙ্ক খুলুন <i class="fa-solid fa-external-link-alt"></i></a>` : ''}
+                    `;
+                    card.appendChild(contentDiv);
+                    scrollContainer.appendChild(card);
+                });
+
+                section.appendChild(scrollContainer);
+                container.appendChild(section);
+            }
+        }
+
+        // --- Editor Logic ---
+        function openEditor(id = null) {
+            const modal = document.getElementById('editor-modal');
+            const title = document.getElementById('modal-title');
+            
+            // Reset Form
+            document.getElementById('edit-id').value = '';
+            document.getElementById('inp-title').value = '';
+            document.getElementById('inp-content').value = '';
+            document.getElementById('inp-url').value = '';
+            
+            if (id) {
+                const post = githubData.posts.find(p => p.id === id);
+                if (post) {
+                    document.getElementById('edit-id').value = post.id;
+                    document.getElementById('inp-type').value = post.type;
+                    document.getElementById('inp-title').value = post.title;
+                    document.getElementById('inp-content').value = post.content;
+                    document.getElementById('inp-url').value = post.url || '';
+                    title.innerText = 'পোস্ট এডিট করুন';
+                }
+            } else {
+                title.innerText = 'নতুন পোস্ট তৈরি করুন';
+            }
+            
+            modal.classList.remove('hidden');
+        }
+
+        function closeEditor() {
+            document.getElementById('editor-modal').classList.add('hidden');
+        }
+
+        function savePost() {
+            const id = document.getElementById('edit-id').value;
+            const type = document.getElementById('inp-type').value;
+            const title = document.getElementById('inp-title').value;
+            const content = document.getElementById('inp-content').value;
+            const url = document.getElementById('inp-url').value;
+
+            if (!title) return showToast("শিরোনাম আবশ্যক!");
+
+            if (id) {
+                // Edit existing
+                const index = githubData.posts.findIndex(p => p.id == id);
+                if (index !== -1) {
+                    githubData.posts[index] = { ...githubData.posts[index], type, title, content, url, timestamp: new Date().toISOString() };
+                }
+            } else {
+                // Create New
+                const newPost = {
+                    id: Date.now(),
+                    type,
+                    category: "New Updates", // Default category, user can expand logic to input this
+                    title,
+                    content,
+                    url,
+                    timestamp: new Date().toISOString()
+                };
+                githubData.posts.push(newPost);
+            }
+
+            pushToGitHub();
+        }
+
+        // --- Utilities ---
+        function showToast(msg) {
+            const t = document.getElementById('toast');
+            t.innerText = msg;
+            t.classList.remove('hidden');
+            setTimeout(() => t.classList.add('hidden'), 3000);
+        }
+    </script>
+</body>
+</html>
