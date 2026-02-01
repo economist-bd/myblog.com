@@ -1,0 +1,30 @@
+{
+  "posts": [
+    {
+      "id": 1,
+      "type": "text",
+      "category": "Thoughts",
+      "title": "আজকের চিন্তা",
+      "content": "অর্থনীতি এবং প্রযুক্তির সমন্বয় আমাদের জীবনকে সহজ করে তোলে।",
+      "timestamp": "2026-02-01T10:00:00"
+    },
+    {
+      "id": 2,
+      "type": "image",
+      "category": "Photography",
+      "title": "প্রকৃতির রূপ",
+      "url": "https://images.unsplash.com/photo-1472214103451-9374bd1c798e",
+      "content": "আজকে তোলা একটি সুন্দর ছবি।",
+      "timestamp": "2026-02-01T11:00:00"
+    },
+    {
+      "id": 3,
+      "type": "video",
+      "category": "Tutorials",
+      "title": "Web Dev Intro",
+      "url": "https://www.w3schools.com/html/mov_bbb.mp4",
+      "content": "ওয়েব ডেভেলপমেন্টের বেসিক ধারণা।",
+      "timestamp": "2026-02-01T12:00:00"
+    }
+  ]
+}
