@@ -186,47 +186,103 @@
             }
         }
 
-        async function pushToGitHub() {
+                async function pushToGitHub() {
             const owner = localStorage.getItem('gh_owner');
             const repo = localStorage.getItem('gh_repo');
             const token = localStorage.getItem('gh_token');
 
-            if (!token) return showToast("টোকেন নেই! এডিট করা যাবে না।");
+            if (!token) return showToast("টোকেন পাওয়া যায়নি! সেটিংসে টোকেন দিন।");
 
-            const content = btoa(unescape(encodeURIComponent(JSON.stringify(githubData, null, 2))));
-            
+            showToast("গিটহাবে কানেক্ট করা হচ্ছে...");
+
             const url = `https://api.github.com/repos/${owner}/${repo}/contents/data.json`;
-            
-            showToast("গিটহাবে আপলোড হচ্ছে...");
+            const headers = {
+                'Authorization': `token ${token}`,
+                'Content-Type': 'application/json',
+                'Accept': 'application/vnd.github.v3+json'
+            };
 
             try {
-                const res = await fetch(url, {
+                // ১. প্রথমে বর্তমান ফাইলটি ফেচ করে লেটেস্ট SHA এবং ডাটা নিব
+                const getRes = await fetch(url, { headers: headers, cache: "no-store" });
+                
+                if (!getRes.ok) {
+                    if(getRes.status === 404) return showToast("রিপোজিটরি বা ফাইল খুঁজে পাওয়া যায়নি!");
+                    if(getRes.status === 401) return showToast("টোকেন সঠিক নয় বা মেয়াদ শেষ!");
+                    throw new Error("Fetch failed");
+                }
+
+                const getData = await getRes.json();
+                const latestSha = getData.sha;
+                
+                // বর্তমান ডাটা ডিকোড করা
+                const currentContent = JSON.parse(decodeURIComponent(escape(window.atob(getData.content))));
+                
+                // নতুন পোস্টটি মেমোরিতে থাকা ডাটার সাথে মার্জ না করে, 
+                // সরাসরি সার্ভার থেকে আসা ডাটার সাথে মার্জ করব।
+                // (এটি ডাটা হারানো রোধ করবে)
+                
+                // ফর্ম থেকে ডাটা নেওয়া
+                const id = document.getElementById('edit-id').value;
+                const type = document.getElementById('inp-type').value;
+                const title = document.getElementById('inp-title').value;
+                const contentText = document.getElementById('inp-content').value;
+                const mediaUrl = document.getElementById('inp-url').value;
+
+                let updatedPosts = [...currentContent.posts];
+
+                if (id) {
+                    // এডিট মোড
+                    const index = updatedPosts.findIndex(p => p.id == id);
+                    if (index !== -1) {
+                        updatedPosts[index] = { ...updatedPosts[index], type, title, content: contentText, url: mediaUrl, timestamp: new Date().toISOString() };
+                    }
+                } else {
+                    // নতুন পোস্ট
+                    const newPost = {
+                        id: Date.now(),
+                        type,
+                        category: "New Updates",
+                        title,
+                        content: contentText,
+                        url: mediaUrl,
+                        timestamp: new Date().toISOString()
+                    };
+                    updatedPosts.push(newPost);
+                }
+
+                // আপডেট করা ডাটা এনকোড করা
+                const newContentBase64 = btoa(unescape(encodeURIComponent(JSON.stringify({ posts: updatedPosts }, null, 2))));
+
+                // ২. এখন আপলোড (PUT Request) করব
+                const putRes = await fetch(url, {
                     method: 'PUT',
-                    headers: {
-                        'Authorization': `token ${token}`,
-                        'Content-Type': 'application/json',
-                    },
+                    headers: headers,
                     body: JSON.stringify({
-                        message: "Updated via Web App",
-                        content: content,
-                        sha: currentSha
+                        message: id ? "Updated post via App" : "Added new post via App",
+                        content: newContentBase64,
+                        sha: latestSha // একদম লেটেস্ট SHA ব্যবহার করছি
                     })
                 });
 
-                if (res.ok) {
-                    const data = await res.json();
-                    currentSha = data.content.sha;
-                    showToast("সফলভাবে আপডেট হয়েছে!");
+                if (putRes.ok) {
+                    showToast("✅ সফলভাবে পোস্ট হয়েছে!");
                     closeEditor();
+                    // লোকাল ভেরিয়েবল আপডেট করে UI রিফ্রেশ
+                    githubData.posts = updatedPosts;
                     renderUI();
                 } else {
-                    showToast("আপলোড ব্যর্থ হয়েছে। কনসোল দেখুন।");
+                    const errData = await putRes.json();
+                    console.error("GitHub Error:", errData);
+                    showToast(`ব্যর্থ হয়েছে: ${errData.message}`);
                 }
+
             } catch (error) {
                 console.error(error);
-                showToast("নেটওয়ার্ক এরর!");
+                showToast("নেটওয়ার্ক বা পারমিশন এরর! কনসোল চেক করুন।");
             }
         }
+
 
         // --- UI Rendering ---
         function renderUI() {
