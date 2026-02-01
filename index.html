@@ -315,11 +315,10 @@
 
 
         // --- UI Rendering ---
-        function renderUI() {
+                function renderUI() {
             const container = document.getElementById('content-area');
             container.innerHTML = '';
 
-            // Group by Category
             const categories = {};
             // Reverse to show latest first
             [...githubData.posts].reverse().forEach(post => {
@@ -328,15 +327,13 @@
                 categories[cat].push(post);
             });
 
-            // Render Horizontal Scroll Sections
             for (const [category, posts] of Object.entries(categories)) {
-                
                 const section = document.createElement('div');
                 section.className = 'mb-8';
                 
                 const title = document.createElement('h3');
-                title.className = 'text-xl font-bold mb-3 pl-2 text-blue-400 border-l-4 border-blue-500';
-                title.innerText = category;
+                title.className = 'text-xl font-bold mb-3 pl-2 text-blue-400 border-l-4 border-blue-500 flex justify-between items-center';
+                title.innerHTML = `<span>${category}</span> <span class="text-xs font-normal text-gray-500 bg-slate-800 px-2 py-1 rounded">${posts.length}</span>`;
                 section.appendChild(title);
 
                 const scrollContainer = document.createElement('div');
@@ -344,34 +341,49 @@
                 
                 posts.forEach(post => {
                     const card = document.createElement('div');
-                    card.className = 'glass rounded-xl p-0 min-w-[280px] w-[280px] flex-shrink-0 snap-center overflow-hidden flex flex-col relative group';
+                    // কার্ডে cursor-pointer দেওয়া হয়েছে যাতে বোঝা যায় ক্লিক করা যাবে
+                    card.className = 'glass rounded-xl p-0 min-w-[280px] w-[280px] flex-shrink-0 snap-center overflow-hidden flex flex-col relative group cursor-pointer hover:border-blue-500/50 transition border border-transparent';
                     
-                    // Edit Button (Visible on hover/touch)
+                    // পুরো কার্ডে ক্লিক করলে ভিউ মোডাল ওপেন হবে
+                    card.onclick = (e) => {
+                        // এডিট বাটনে চাপ দিলে যেন ভিউ ওপেন না হয়
+                        if(e.target.closest('.edit-btn')) return;
+                        openViewModal(post);
+                    };
+
+                    // Edit Button
                     const editBtn = document.createElement('button');
-                    editBtn.className = 'absolute top-2 right-2 bg-black/50 hover:bg-blue-600 text-white p-2 rounded-full opacity-0 group-hover:opacity-100 transition duration-300 z-10';
-                    editBtn.innerHTML = '<i class="fa-solid fa-pen"></i>';
-                    editBtn.onclick = () => openEditor(post.id);
+                    editBtn.className = 'edit-btn absolute top-2 right-2 bg-black/60 hover:bg-blue-600 text-white p-2 rounded-full opacity-0 group-hover:opacity-100 transition duration-300 z-10';
+                    editBtn.innerHTML = '<i class="fa-solid fa-pen text-sm"></i>';
+                    editBtn.onclick = (e) => {
+                        e.stopPropagation(); // Parent click বন্ধ করা
+                        openEditor(post.id);
+                    };
                     card.appendChild(editBtn);
 
-                    // Media Rendering
+                    // Media Thumbnail
                     let mediaHtml = '';
                     if(post.type === 'image' && post.url) {
-                        mediaHtml = `<div class="h-40 w-full bg-slate-800"><img src="${post.url}" class="w-full h-full object-cover"></div>`;
-                    } else if (post.type === 'video' && post.url) {
-                         mediaHtml = `<div class="h-40 w-full bg-slate-800 flex items-center justify-center"><i class="fa-solid fa-play text-4xl text-gray-500"></i></div>`; // Simple placeholder for performance
+                        mediaHtml = `<div class="h-40 w-full bg-slate-800 overflow-hidden"><img src="${post.url}" class="w-full h-full object-cover group-hover:scale-110 transition duration-500"></div>`;
+                    } else if (post.type === 'video') {
+                         mediaHtml = `<div class="h-40 w-full bg-slate-800 flex items-center justify-center relative"><img src="https://img.youtube.com/vi/${getYoutubeId(post.url)}/hqdefault.jpg" onerror="this.src='https://via.placeholder.com/300x200?text=Video'" class="w-full h-full object-cover opacity-60"><i class="fa-solid fa-play-circle text-4xl text-white absolute"></i></div>`;
                     } else if (post.type === 'audio') {
-                         mediaHtml = `<div class="h-20 w-full bg-slate-800 flex items-center justify-center text-green-400"><i class="fa-solid fa-music text-3xl mr-2"></i> Audio Clip</div>`;
+                         mediaHtml = `<div class="h-20 w-full bg-gradient-to-r from-slate-800 to-slate-700 flex items-center justify-center text-green-400"><i class="fa-solid fa-music text-3xl mr-2"></i> Audio Post</div>`;
+                    } else {
+                        // Text only posts styling
+                        mediaHtml = `<div class="h-2 w-full bg-gradient-to-r from-blue-500 to-purple-500"></div>`;
                     }
 
                     card.innerHTML += mediaHtml;
 
                     const contentDiv = document.createElement('div');
                     contentDiv.className = 'p-4 flex-1 flex flex-col';
+                    // লাইন ক্ল্যাম্প করে ৩ লাইনে সীমাবদ্ধ রাখা হয়েছে
                     contentDiv.innerHTML = `
-                        <h4 class="font-bold text-lg mb-1 leading-tight">${post.title}</h4>
-                        <p class="text-xs text-gray-400 mb-2">${new Date(post.timestamp).toLocaleDateString()}</p>
-                        <p class="text-sm text-gray-300 line-clamp-3 mb-2">${post.content}</p>
-                        ${post.url && post.type !== 'image' ? `<a href="${post.url}" target="_blank" class="mt-auto text-blue-400 text-xs hover:underline">লিঙ্ক খুলুন <i class="fa-solid fa-external-link-alt"></i></a>` : ''}
+                        <h4 class="font-bold text-lg mb-1 leading-tight text-slate-100">${post.title}</h4>
+                        <p class="text-xs text-gray-500 mb-2">${new Date(post.timestamp).toLocaleDateString()}</p>
+                        <p class="text-sm text-gray-400 line-clamp-3 mb-2">${post.content}</p>
+                        <span class="mt-auto text-blue-400 text-xs font-semibold group-hover:underline">বিস্তারিত দেখুন &rarr;</span>
                     `;
                     card.appendChild(contentDiv);
                     scrollContainer.appendChild(card);
@@ -381,6 +393,7 @@
                 container.appendChild(section);
             }
         }
+
 
         // --- Editor Logic ---
         function openEditor(id = null) {
@@ -453,6 +466,71 @@
             t.classList.remove('hidden');
             setTimeout(() => t.classList.add('hidden'), 3000);
         }
+                // --- View Modal Logic ---
+        function openViewModal(post) {
+            const modal = document.getElementById('view-modal');
+            const mediaContainer = document.getElementById('view-media');
+            
+            // Set Text Content
+            document.getElementById('view-category').innerText = post.category || 'Update';
+            document.getElementById('view-title').innerText = post.title;
+            document.getElementById('view-date').innerText = new Date(post.timestamp).toLocaleString();
+            document.getElementById('view-content').innerText = post.content;
+
+            // Handle Link Button
+            const linkContainer = document.getElementById('view-link-container');
+            const linkBtn = document.getElementById('view-link');
+            if(post.url && post.type !== 'image' && post.type !== 'video') {
+                linkContainer.classList.remove('hidden');
+                linkBtn.href = post.url;
+            } else {
+                linkContainer.classList.add('hidden');
+            }
+
+            // Render Full Media
+            mediaContainer.innerHTML = '';
+            mediaContainer.className = "w-full bg-black min-h-[100px] flex items-center justify-center relative"; // Reset classes
+
+            if (post.type === 'image' && post.url) {
+                mediaContainer.innerHTML = `<img src="${post.url}" class="w-full h-auto max-h-[70vh] object-contain">`;
+            } 
+            else if (post.type === 'video' && post.url) {
+                // Check if it's YouTube or direct link
+                const ytId = getYoutubeId(post.url);
+                if(ytId) {
+                    mediaContainer.innerHTML = `<iframe class="w-full aspect-video" src="https://www.youtube.com/embed/${ytId}?autoplay=1" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>`;
+                } else {
+                    mediaContainer.innerHTML = `<video controls autoplay class="w-full max-h-[60vh]"><source src="${post.url}"></video>`;
+                }
+            } 
+            else if (post.type === 'audio' && post.url) {
+                 mediaContainer.className = "w-full bg-slate-800 p-8 flex flex-col items-center justify-center";
+                 mediaContainer.innerHTML = `<i class="fa-solid fa-compact-disc fa-spin text-6xl text-blue-500 mb-4"></i><audio controls class="w-full max-w-sm"><source src="${post.url}"></audio>`;
+            } 
+            else {
+                mediaContainer.style.display = 'none'; // No media
+            }
+            
+            if(post.type !== 'text') mediaContainer.style.display = 'flex';
+
+            modal.classList.remove('hidden');
+        }
+
+        function closeViewModal() {
+            const modal = document.getElementById('view-modal');
+            modal.classList.add('hidden');
+            // Stop video playback on close
+            document.getElementById('view-media').innerHTML = '';
+        }
+
+        // Helper to extract YouTube ID
+        function getYoutubeId(url) {
+            if(!url) return null;
+            const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
+            const match = url.match(regExp);
+            return (match && match[2].length === 11) ? match[2] : null;
+        }
+
     </script>
 </body>
 </html>
